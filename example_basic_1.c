@@ -112,12 +112,12 @@ int main(int argc, char **argv)
 
    MMAL_ES_FORMAT_T *format_out = encoder->output[0]->format;
    format_out->type = MMAL_ES_TYPE_VIDEO;
-   format_out->encoding = MMAL_ENCODING_H264;
+   format_out->encoding = MMAL_ENCODING_JPEG;
    format_out->es->video.width = WIDTH;
    format_out->es->video.height = HEIGHT;
    format_out->es->video.frame_rate.num = 120;
    format_out->es->video.frame_rate.den = 1;
-   format_out->bitrate = 10000000;
+   //format_out->bitrate = 10000000;
 
    fprintf(stderr, "%s\n", encoder->output[0]->name);
    fprintf(stderr, " type: %i, fourcc: %4.4s\n", format_out->type, (char *)&format_out->encoding);
@@ -134,7 +134,8 @@ int main(int argc, char **argv)
    encoder->input[0]->buffer_num = 6;
    encoder->input[0]->buffer_size = encoder->input[0]->buffer_size_min;
    encoder->output[0]->buffer_num = 6;
-   encoder->output[0]->buffer_size = encoder->output[0]->buffer_size_min;
+   encoder->output[0]->buffer_size = encoder->output[0]->buffer_size_min * 50;
+
    pool_in = mmal_port_pool_create(encoder->input[0], encoder->input[0]->buffer_num,
                               encoder->input[0]->buffer_size);
    pool_out = mmal_port_pool_create(encoder->output[0], encoder->output[0]->buffer_num,
@@ -142,6 +143,7 @@ int main(int argc, char **argv)
 
    for (i = 0; i < encoder->input[0]->buffer_num; i++)
    {
+      printf("Set Buffer %d \n", i);
      memset(pool_in->header[i]->data, (i*160)&0xFF, pool_in->header[i]->alloc_size);
    }
 
@@ -149,12 +151,7 @@ int main(int argc, char **argv)
     * a frame has been encoded will put the frame into this queue. */
    context.queue = mmal_queue_create();
 
-   out_file = fopen("out.h264", "wb");
-   if (!out_file)
-   {
-      fprintf(stderr, "Failed to open output file\n");
-      exit(1);
-   }
+
    /* Store a reference to our context in each port (will be used during callbacks) */
    encoder->input[0]->userdata = (void *)&context;
    encoder->output[0]->userdata = (void *)&context;
@@ -203,7 +200,19 @@ int main(int argc, char **argv)
           */
          count++;
          fprintf(stderr, "encoded frame\n");
+
+         char filename[100];
+         sprintf(filename, "out_%d.jpg", count);
+         out_file = fopen(filename, "wb");
+         if (!out_file)
+         {
+            fprintf(stderr, "Failed to open output file\n");
+            exit(1);
+         }
          fwrite(buffer->data, buffer->length, 1, out_file);
+         fclose(out_file);
+
+
          mmal_buffer_header_release(buffer);
       }
 
@@ -226,7 +235,7 @@ int main(int argc, char **argv)
    mmal_port_disable(encoder->output[0]);
    mmal_component_disable(encoder);
 
-   fclose(out_file);
+
 
  error:
    /* Cleanup everything */

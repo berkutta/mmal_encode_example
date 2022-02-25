@@ -14,6 +14,7 @@ example_basic_1: example_basic_1.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
+	-rm -f *.jpg
 	-rm -f *.o
 	-rm -f example_basic_1
 
