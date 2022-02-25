@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     * This specific component exposes 2 ports (1 input and 1 output). Like most components
     * its expects the format of its input port to be set by the client in order for it to
     * know what kind of data it will be fed. */
-   status = mmal_component_create(MMAL_COMPONENT_DEFAULT_VIDEO_ENCODER, &encoder);
+   status = mmal_component_create(MMAL_COMPONENT_DEFAULT_IMAGE_ENCODER, &encoder);
    CHECK_STATUS(status, "failed to create encoder");
 
    /* Set format of video encoder input port */
@@ -119,6 +119,12 @@ int main(int argc, char **argv)
    format_out->es->video.frame_rate.den = 1;
    //format_out->bitrate = 10000000;
 
+   status = mmal_port_format_commit(encoder->output[0]);
+   CHECK_STATUS(status, "failed to commit format");
+
+   mmal_port_parameter_set_uint32(encoder->output[0],
+								MMAL_PARAMETER_JPEG_Q_FACTOR, 10);
+
    fprintf(stderr, "%s\n", encoder->output[0]->name);
    fprintf(stderr, " type: %i, fourcc: %4.4s\n", format_out->type, (char *)&format_out->encoding);
    fprintf(stderr, " bitrate: %i, framed: %i\n", format_out->bitrate,
@@ -134,7 +140,7 @@ int main(int argc, char **argv)
    encoder->input[0]->buffer_num = 6;
    encoder->input[0]->buffer_size = encoder->input[0]->buffer_size_min;
    encoder->output[0]->buffer_num = 6;
-   encoder->output[0]->buffer_size = encoder->output[0]->buffer_size_min * 50;
+   encoder->output[0]->buffer_size = encoder->output[0]->buffer_size_min;
 
    pool_in = mmal_port_pool_create(encoder->input[0], encoder->input[0]->buffer_num,
                               encoder->input[0]->buffer_size);
